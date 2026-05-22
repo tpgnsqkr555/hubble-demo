@@ -231,13 +231,26 @@ function App() {
   const handleExport = () => {
     if (!downloadUrl) return;
 
-    // Download the PNG chart
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.download = 'timeline.png';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleLoadSample = async () => {
+    if (isProcessing) return;
+    try {
+      const res = await fetch('/sample_case.pdf');
+      const blob = await res.blob();
+      const file = new File([blob], 'NexVira_sample_case.pdf', { type: 'application/pdf' });
+      fileInputRef.current.pendingFile = file;
+      setHasPendingFile(true);
+      setPendingFileName(file.name);
+    } catch {
+      setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Could not load sample document.' }]);
+    }
   };
 
   return (
@@ -267,10 +280,38 @@ function App() {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {messages.length === 0 && (
-            <div className="space-y-4 pt-8">
+            <div className="space-y-4 pt-6">
               <div className="text-center text-sm text-muted-foreground">
                 <p className="mb-4">Upload a legal document to get started.</p>
-                <p className="text-xs mb-3">Try these visualization types:</p>
+              </div>
+
+              {/* Sample document card */}
+              <div className="mx-1 rounded-xl border border-border bg-muted/40 p-3">
+                <p className="text-xs font-semibold mb-1">Try a sample case</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  NexVira Pharmaceutical — regulatory investigation &amp; executive timeline
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleLoadSample}
+                    disabled={isProcessing}
+                    className="flex-1 px-3 py-1.5 text-xs rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
+                  >
+                    Load Sample
+                  </button>
+                  <a
+                    href="/sample_case.pdf"
+                    download="NexVira_sample_case.pdf"
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg bg-muted hover:bg-muted/80 transition-colors border border-border"
+                  >
+                    <Download className="w-3 h-3" />
+                    Download PDF
+                  </a>
+                </div>
+              </div>
+
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-2">Or try these visualization types:</p>
               </div>
               <div className="flex flex-wrap gap-2 justify-center px-2">
                 {[
