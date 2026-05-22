@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import json
 import asyncio
 import os
@@ -17,7 +18,7 @@ load_dotenv()
 
 app = FastAPI(title="Hubble Legal Timeline API")
 
-# CORS middleware for React frontend
+# CORS middleware for local dev
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:5173"],
@@ -214,6 +215,19 @@ async def health_check():
     return {"status": "healthy", "service": "Hubble API"}
 
 
+# Serve React frontend in production (when dist/ exists)
+DIST_DIR = os.path.join(os.path.dirname(__file__), "dist")
+if os.path.exists(DIST_DIR):
+    app.mount("/assets", StaticFiles(directory=os.path.join(DIST_DIR, "assets")), name="assets")
+
+    @app.get("/{full_path:path}", response_class=HTMLResponse)
+    async def serve_spa(full_path: str):
+        index = os.path.join(DIST_DIR, "index.html")
+        with open(index) as f:
+            return f.read()
+
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
